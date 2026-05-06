@@ -647,8 +647,7 @@
 </div>
 
 <script>
-const CORRECT_OTP = atob('YWFhYWJiYmJjY2Nj');
-// Password - DDCA0200DBABADC
+const CORRECT_OTP = atob('RERDQTAyMDBEQkFCQURD');
 
 let sigDrawing = false;
 let sigHasContent = false;
@@ -701,8 +700,9 @@ function goToScreen(id) {
 }
 
 function submitOTP() {
-  const val = document.getElementById('otpInput').value.trim();
+  const val = document.getElementById('otpInput').value.trim().toUpperCase();
   const err = document.getElementById('otpError');
+
   if (val === CORRECT_OTP) {
     err.textContent = '';
     goToScreen('s2');
@@ -710,7 +710,10 @@ function submitOTP() {
   } else {
     err.textContent = '[ INVALID OTP — PLEASE TRY AGAIN ]';
     document.getElementById('s1').classList.add('camera-shake');
-    setTimeout(() => document.getElementById('s1').classList.remove('camera-shake'), 400);
+
+    setTimeout(() => {
+      document.getElementById('s1').classList.remove('camera-shake');
+    }, 400);
   }
 }
 
