@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    color: #e8e0d0;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  #app {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .vignette {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+    z-index: 99;
+  }
+
+
+  #musicToggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 500;
+    background: rgba(10,20,10,0.85);
+    border: 1px solid #4a7c4a;
+    color: #6ab06a;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 8px 14px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #musicToggle:hover { background: rgba(106,176,106,0.15); border-color: #6ab06a; }
+  #musicToggle .icon { font-size: 14px; }
+
+  .screen {
+    display: none;
+    width: 100%;
+    max-width: 640px;
+    padding: 2rem;
+    position: relative;
+    z-index: 10;
+    animation: fadeIn 0.6s ease forwards;
+  }
+
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .terminal-header {
+    font-size: 10px;
+    color: #4a7c4a;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .terminal-box {
+    border: 1px solid #2a4a2a;
+    padding: 2rem;
+    width: 100%;
+    background: rgba(10,20,10,0.8);
+    position: relative;
+  }
+
+  .terminal-box::before {
+    content: '●●●';
+    position: absolute;
+    top: -1px;
+    left: 12px;
+    font-size: 8px;
+    color: #2a4a2a;
+    background: #0a0a0a;
+    padding: 0 4px;
+  }
+
+  .delivery-logo {
+    font-size: 11px;
+    color: #6ab06a;
+    letter-spacing: 4px;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .delivery-logo span {
+    color: #f0a020;
+    font-size: 14px;
+  }
+
+  .message-text {
+    font-family: 'Courier Prime', monospace;
+    font-size: 15px;
+    line-height: 1.8;
+    color: #c8c0b0;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .message-text .highlight {
+    color: #f0d080;
+    font-weight: 700;
+  }
+
+  .otp-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #4a7c4a;
+    color: #6ab06a;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 18px;
+    letter-spacing: 6px;
+    text-align: center;
+    width: 100%;
+    padding: 8px 0;
+    outline: none;
+    margin-bottom: 1.5rem;
+  }
+
+  .otp-input::placeholder { color: #2a4a2a; letter-spacing: 2px; }
+
+  .btn {
+    background: transparent;
+    border: 1px solid #4a7c4a;
+    color: #6ab06a;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 3px;
+    padding: 10px 32px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:hover {
+    background: rgba(106,176,106,0.1);
+    border-color: #6ab06a;
+    color: #8fd08f;
+  }
+
+  .btn:active { transform: scale(0.98); }
+
+  .error-text {
+    color: #c04040;
+    font-size: 11px;
+    letter-spacing: 2px;
+    margin-top: 8px;
+    height: 16px;
+    text-align: center;
+  }
+
+  .notepad {
+    background: #f5f0e0;
+    border-left: 3px solid #6090d0;
+    padding: 2rem 2rem 2rem 3rem;
+    width: 100%;
+    position: relative;
+    box-shadow: 3px 3px 0 #d0c8b0, 6px 6px 0 #c0b8a0;
+    font-family: 'Courier Prime', monospace;
+    color: #2a2010;
+  }
+
+  .notepad::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: repeating-linear-gradient(180deg, transparent, transparent 28px, #e0d8c0 28px, #e0d8c0 29px);
+  }
+
+  .notepad-lines {
+    background: repeating-linear-gradient(180deg, transparent, transparent 27px, #c8d8f0 27px, #c8d8f0 28px);
+    padding: 4px 0;
+    line-height: 28px;
+  }
+
+  .notepad h2 {
+    font-size: 16px;
+    color: #1a4080;
+    margin-bottom: 1rem;
+    font-style: italic;
+  }
+
+  .notepad p {
+    font-size: 14px;
+    line-height: 28px;
+    color: #302010;
+  }
+
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+
+  .check-item {
+    width: 100%;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: all 0.5s ease;
+    background: rgba(10,20,10,0.6);
+    border: 1px solid #2a4a2a;
+    padding: 1rem 1.2rem;
+  }
+
+  .check-item.visible { opacity: 1; transform: translateY(0); }
+
+  .check-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #b0a898;
+  }
+
+  .check-label input[type=checkbox] {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #4a7c4a;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+    position: relative;
+  }
+
+  .check-label input[type=checkbox]:checked { background: #4a7c4a; }
+
+  .check-label input[type=checkbox]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: -2px;
+    left: 2px;
+    font-size: 12px;
+    color: #e8f8e8;
+  }
+
+  #sigCanvas {
+    width: 100%;
+    height: 160px;
+    background: #faf6ee;
+    border-bottom: 2px solid #2a2010;
+    cursor: crosshair;
+    display: block;
+    touch-action: none;
+  }
+
+  .sig-label {
+    font-size: 10px;
+    color: #6a5a3a;
+    letter-spacing: 2px;
+    text-align: right;
+    margin-top: 4px;
+    font-family: 'Courier Prime', monospace;
+  }
+
+  .sig-wrapper {
+    width: 100%;
+    background: #faf6ee;
+    border: 1px solid #c0b090;
+    padding: 1rem;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .sig-x {
+    font-family: 'Courier Prime', monospace;
+    font-size: 20px;
+    color: #2a2010;
+    margin-bottom: 4px;
+  }
+
+  #horrorScreen {
+    background: transparent; 
+    position: fixed;
+    inset: 0;
+    display: none;
+    z-index: 200;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    overflow: hidden;
+  }
+
+  #horrorScreen.active { display: flex; }
+
+  #laughVideo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .horror-text-overlay {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .horror-fool-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(28px, 6vw, 52px);
+    color: #e3e3e3;
+    text-align: center;
+    line-height: 1.4;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: terminalReveal 4.0s ease 5.2s forwards;
+    text-shadow: 0 0 30px rgba(0,0,0,0.9), 0 0 20px rgba(200,40,40,0.4);
+  }
+
+  @keyframes terminalReveal {
+    from { opacity: 0; transform: scaleX(0); }
+    to { opacity: 1; transform: scaleX(1); }
+  }
+
+  .horror-sub-text {
+    font-family: 'Courier Prime', monospace;
+    font-size: clamp(13px, 2.5vw, 17px);
+    color: #f9f0f0;
+    text-align: center;
+    letter-spacing: 3px;
+    margin-top: 1rem;
+    opacity: 0;
+    animation: terminalReveal 4.0s ease 5.2s forwards;
+    text-shadow: 0 0 20px rgba(0,0,0,0.95);
+  }
+
+
+  .document-reveal {
+    position: fixed;
+    inset: 0;
+    background: rgba(6,8,8,0.92);
+    z-index: 300;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    clip-path: inset(100% 0 0 0);
+    transition: clip-path 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 2rem;
+  }
+
+  .document-reveal.open {
+    clip-path: inset(0% 0 0 0);
+    align-items: center;
+  }
+
+  .document-paper {
+    background: #f5f0e0;
+    border-left: 3px solid #6090d0;
+    padding: 2.5rem 2.5rem 2.5rem 3.5rem;
+    max-width: 560px;
+    width: 100%;
+    position: relative;
+    box-shadow: 3px 3px 0 #d0c8b0, 6px 6px 0 #c0b8a0, 0 20px 60px rgba(0,0,0,0.8);
+    font-family: 'Courier Prime', monospace;
+    color: #2a2010;
+    transform: translateY(60px);
+    opacity: 0;
+    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s, opacity 0.8s ease 0.4s;
+  }
+
+  .document-reveal.open .document-paper {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .doc-lines {
+    background: repeating-linear-gradient(180deg, transparent, transparent 27px, #c8d8f0 27px, #c8d8f0 28px);
+    padding: 4px 0;
+    line-height: 28px;
+  }
+
+  .doc-title {
+    font-size: 12px;
+    color: #1a3060;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    text-align: center;
+  }
+
+  .doc-stamp {
+    font-size: 7px;
+    color: #8090a0;
+    letter-spacing: 2px;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .doc-body {
+    font-size: 10px;
+    line-height: 28px;
+    color: #302010;
+    text-align: center;
+  }
+
+  .doc-body .big-claim {
+    font-size: 10px;
+    font-weight: 700;
+    color: #1a1a50;
+    display: block;
+    margin: 0.5rem 0;
+  }
+
+  .doc-sig-section {
+    margin-top: 1.5rem;
+    border-top: 1px solid #c0b090;
+    padding-top: 1rem;
+  }
+
+  .doc-sig-label {
+    font-size: 7px;
+    color: #8a7a5a;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .doc-sig-img {
+    border-bottom: 1px solid #2a2010;
+    min-height: 60px;
+    background: #faf6ee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .doc-seal {
+    font-size: 7px;
+    color: #6a5a3a;
+    letter-spacing: 1px;
+    margin-top: 6px;
+    text-align: right;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 1px;
+    background: #1a2a1a;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #4a7c4a;
+    transition: width 0.5s ease;
+  }
+
+  .camera-shake { animation: shake 0.4s ease; }
+
+  @keyframes shake {
+    0%,100% { transform: translate(0); }
+    20% { transform: translate(-4px, 2px); }
+    40% { transform: translate(4px, -2px); }
+    60% { transform: translate(-2px, 4px); }
+    80% { transform: translate(2px, -1px); }
+  }
+
+  .confirm-text {
+    font-family: 'Courier Prime', monospace;
+    font-size: 15px;
+    color: #6ab06a;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .cursor-blink::after {
+    content: '_';
+    animation: blink 0.8s infinite;
+    color: #6ab06a;
+  }
+
+  #clearSig {
+    background: transparent;
+    border: none;
+    color: #6a5a3a;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'Courier Prime', monospace;
+    text-decoration: underline;
+    margin-top: 8px;
+  }
+
+  .audio-note {
+    font-size: 10px;
+    color: #4a7c4a;
+    letter-spacing: 1px;
+    margin-top: 1.5rem;
+    opacity: 0.6;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+
+<button id="musicToggle" onclick="toggleMusic()">
+  <span class="icon" id="musicIcon">♪</span>
+  <span id="musicLabel">MUSIC OFF</span>
+</button>
+
+<audio id="bgMusic" src="assets_one/music.mp3" loop preload="auto"></audio>
+
+<div id="app">
+
+  <div class="screen active" id="s1">
+    <div class="terminal-header">AMAZIN' DELIVERY SYSTEM v9.5.26</div>
+    <div class="terminal-box">
+      <div class="delivery-logo">🚚 <span>AMAZIN'</span> SERVICES</div>
+      <div class="message-text">
+        Hello There. <br>
+        We have a parcel for<br>
+        <span class="highlight">Miss Harshita Benke</span><br><br>
+        Kindly share the OTP to proceed with delivery.
+      </div>
+      <input class="otp-input" id="otpInput" type="text" placeholder="ENTER OTP" autocomplete="off" spellcheck="false" />
+      <div style="text-align:center;">
+        <button class="btn" onclick="submitOTP()">VERIFY OTP</button>
+      </div>
+      <div class="error-text" id="otpError"></div>
+    </div>
+    <div class="audio-note">[ ensure earphones are connected for best experience ]</div>
+  </div>
+
+  <div class="screen" id="s2">
+    <div class="terminal-header">ORDER CONFIRMED</div>
+    <div style="text-align:center; margin-bottom:1.5rem;">
+      <div class="confirm-text cursor-blink" id="confirmTyped"></div>
+    </div>
+    <div class="notepad" id="notepad">
+      <div class="notepad-lines">
+        <h2>Delivery Note — Amazin' Express</h2>
+        <p id="noteText"></p>
+      </div>
+    </div>
+    <div style="margin-top:2rem; text-align:center;">
+      <button class="btn" id="proceedBtn" onclick="goToChecks()" style="display:none;">PROCEED TO VERIFICATION</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s3">
+    <div class="terminal-header">DELIVERY VERIFICATION</div>
+    <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+    <div style="width:100%;" id="checksContainer"></div>
+    <div style="margin-top:1.5rem; text-align:center;">
+      <button class="btn" id="checksBtn" onclick="goToSign()" style="display:none; opacity:0.4;" disabled>PROCEED TO DELIVERY</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s4">
+    <div class="terminal-header">SIGNATURE REQUIRED</div>
+    <div class="terminal-box" style="margin-bottom:1.5rem;">
+      <div class="message-text">
+        Sounds good, Ma'am.<br>
+        Before I proceed with the delivery,<br>
+        I kindly request that you <span class="highlight">sign your name here.</span>
+      </div>
+    </div>
+    <div class="sig-wrapper">
+      <div class="sig-x">✕</div>
+      <canvas id="sigCanvas"></canvas>
+      <div class="sig-label">SIGN ABOVE — RECIPIENT SIGNATURE</div>
+    </div>
+    <button id="clearSig" onclick="clearSignature()">clear</button>
+    <div style="margin-top:2rem; text-align:center;">
+      <button class="btn" onclick="submitSignature()">CONFIRM SIGNATURE</button>
+    </div>
+    <div class="error-text" id="sigError"></div>
+  </div>
+
+</div>
+
+<div id="horrorScreen">
+  <video id="laughVideo" src="assets_one/laugh_video.mp4" autoplay muted playsinline disablepictureinpicture controlslist="nodownload nofullscreen noremoteplayback"></video>
+  <div class="horror-text-overlay">
+    <div class="horror-fool-text">.</div>
+    <div class="horror-sub-text">.</div>
+  </div>
+</div>
+
+<div class="document-reveal" id="documentReveal">
+  <div class="document-paper">
+    <div class="doc-lines">
+      <div class="doc-title">OFFICIAL BINDING TREATY</div>
+      <div class="doc-stamp">REF: AMAZIN'/LEGAL/0306 — DATE: 09/05/2026</div>
+      <div class="doc-body">
+        By affixing your signature below, the undersigned hereby acknowledges and irrevocably consents to the following terms:<br><br>
+        <span class="big-claim">I acknowledge that upon receiving and opening this parcel, I will respectfully cease all further contact with the sender after 9th May '26, 11:11 P.M. onwards. This includes refraining from any communication on special occasions, birthdays included. I also agree to keep this gift low-profile — not a secret, but something best left without any unnecessary attention or display; rather, a quiet token shared only between the sender and receiver.</span>  
+        Furthermore, I will not trouble or reach out to the sender, nor to his friends or girlfriend, in any capacity. I understand the terms clearly: No Contact. No Gifts. No Exceptions.<br><br>  
+        This agreement stands binding across all known dimensions — and a few unknown ones. No refunds. No returns. Any breach may result in emotional turbulence and unintended consequences for both the sender and the recipient, especially at a time when both stand at crucial stages of their lives and careers — something neither party desires. 
+      </div>
+      <div class="doc-sig-section">
+        <div class="doc-sig-label">RECIPIENT SIGNATURE — AS PROVIDED:</div>
+        <div class="doc-sig-img" id="docSigDisplay"></div>
+        <div class="doc-seal">VERIFIED ✓ — AMAZIN' LEGAL DEPT.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CORRECT_OTP = atob('YWFhYWJiYmJjY2Nj');
+// Password - DDCA0200DBABADC
+
+let sigDrawing = false;
+let sigHasContent = false;
+let sigCtx, sigCanvas;
+let capturedSigDataURL = null;
+
+const bgMusic = document.getElementById('bgMusic');
+let musicOn = false;
+
+function startMusic() {
+  bgMusic.currentTime = 6;
+  bgMusic.play().then(() => {
+    musicOn = true;
+    document.getElementById('musicIcon').textContent = '♫';
+    document.getElementById('musicLabel').textContent = 'MUSIC ON';
+  }).catch(() => {});
+}
+
+function toggleMusic() {
+  if (musicOn) {
+    bgMusic.pause();
+    musicOn = false;
+    document.getElementById('musicIcon').textContent = '♪';
+    document.getElementById('musicLabel').textContent = 'MUSIC OFF';
+  } else {
+    startMusic();
+  }
+}
+
+startMusic();
+function onFirstInteraction() {
+  if (!musicOn) startMusic();
+  document.removeEventListener('click', onFirstInteraction);
+  document.removeEventListener('keydown', onFirstInteraction);
+  document.removeEventListener('touchstart', onFirstInteraction);
+}
+document.addEventListener('click', onFirstInteraction);
+document.addEventListener('keydown', onFirstInteraction);
+document.addEventListener('touchstart', onFirstInteraction);
+
+const checks = [
+  "This parcel contains graphic violence and horror. Are you 21+ as of now?",
+  "Are you receiving this parcel on a laptop?",
+  "Are you wearing earphones for a better experience, and do you have dim lighting?"
+];
+
+function goToScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function submitOTP() {
+  const val = document.getElementById('otpInput').value.trim();
+  const err = document.getElementById('otpError');
+  if (val === CORRECT_OTP) {
+    err.textContent = '';
+    goToScreen('s2');
+    startConfirmAnimation();
+  } else {
+    err.textContent = '[ INVALID OTP — PLEASE TRY AGAIN ]';
+    document.getElementById('s1').classList.add('camera-shake');
+    setTimeout(() => document.getElementById('s1').classList.remove('camera-shake'), 400);
+  }
+}
+
+document.getElementById('otpInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitOTP();
+});
+
+function startConfirmAnimation() {
+  const msg = "Thank you for accepting the order, Ma'am.";
+  const el = document.getElementById('confirmTyped');
+  let i = 0;
+  const iv = setInterval(() => {
+    el.textContent = msg.slice(0, i);
+    i++;
+    if (i > msg.length) {
+      clearInterval(iv);
+      el.classList.remove('cursor-blink');
+      setTimeout(() => typeNotepad(), 400);
+    }
+  }, 35);
+}
+
+function typeNotepad() {
+  const noteLines = [
+    "Date: 09/05/2026",
+    "Recipient: Miss Harshita Benke",
+    "Parcel: [CLASSIFIED] — Handle with care.",
+    "Status: OTP Verified",
+    "Delivery Agent: Agent #0306",
+    "",
+    "Please proceed with verification."
+  ];
+  const el = document.getElementById('noteText');
+  let full = '';
+  let lineIdx = 0;
+  let charIdx = 0;
+
+  const iv = setInterval(() => {
+    if (lineIdx >= noteLines.length) {
+      clearInterval(iv);
+      setTimeout(() => {
+        const btn = document.getElementById('proceedBtn');
+        btn.style.display = 'inline-block';
+      }, 500);
+      return;
+    }
+    const line = noteLines[lineIdx];
+    if (charIdx < line.length) {
+      full += line[charIdx];
+      charIdx++;
+    } else {
+      full += '\n';
+      lineIdx++;
+      charIdx = 0;
+    }
+    el.textContent = full;
+  }, 28);
+}
+
+function goToChecks() {
+  goToScreen('s3');
+  renderChecks();
+}
+
+function renderChecks() {
+  const container = document.getElementById('checksContainer');
+  container.innerHTML = '';
+  checks.forEach((text, i) => {
+    const div = document.createElement('div');
+    div.className = 'check-item';
+    div.id = `check${i}`;
+    div.innerHTML = `
+      <label class="check-label">
+        <input type="checkbox" id="cb${i}" onchange="updateChecks()" />
+        <span>${text}</span>
+      </label>
+    `;
+    container.appendChild(div);
+    setTimeout(() => div.classList.add('visible'), 400 * i + 200);
+  });
+}
+
+function updateChecks() {
+  const total = checks.length;
+  let checked = 0;
+  for (let i = 0; i < total; i++) {
+    if (document.getElementById(`cb${i}`)?.checked) checked++;
+  }
+  document.getElementById('progFill').style.width = `${(checked / total) * 100}%`;
+  const btn = document.getElementById('checksBtn');
+  btn.style.display = 'inline-block';
+  if (checked === total) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+  }
+}
+
+function goToSign() {
+  goToScreen('s4');
+  setupCanvas();
+}
+
+function setupCanvas() {
+  sigCanvas = document.getElementById('sigCanvas');
+  sigCtx = sigCanvas.getContext('2d');
+  const rect = sigCanvas.getBoundingClientRect();
+  sigCanvas.width = rect.width * window.devicePixelRatio;
+  sigCanvas.height = rect.height * window.devicePixelRatio;
+  sigCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  sigCtx.strokeStyle = '#2a1a0a';
+  sigCtx.lineWidth = 2;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+
+  function getPos(e) {
+    const r = sigCanvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: src.clientX - r.left, y: src.clientY - r.top };
+  }
+
+  sigCanvas.addEventListener('mousedown', e => { sigDrawing = true; const p = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); });
+  sigCanvas.addEventListener('mousemove', e => { if (!sigDrawing) return; const p = getPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); sigHasContent = true; });
+  sigCanvas.addEventListener('mouseup', () => sigDrawing = false);
+  sigCanvas.addEventListener('mouseleave', () => sigDrawing = false);
+  sigCanvas.addEventListener('touchstart', e => { e.preventDefault(); sigDrawing = true; const p = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); });
+  sigCanvas.addEventListener('touchmove', e => { e.preventDefault(); if (!sigDrawing) return; const p = getPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); sigHasContent = true; });
+  sigCanvas.addEventListener('touchend', () => sigDrawing = false);
+}
+
+function clearSignature() {
+  if (sigCtx && sigCanvas) {
+    sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    sigHasContent = false;
+  }
+}
+
+function submitSignature() {
+  if (!sigHasContent) {
+    document.getElementById('sigError').textContent = '[ PLEASE PROVIDE YOUR SIGNATURE ]';
+    return;
+  }
+  capturedSigDataURL = sigCanvas.toDataURL();
+  triggerHorror();
+}
+
+function triggerHorror() {
+  const horror = document.getElementById('horrorScreen');
+  horror.classList.add('active');
+
+  const vid = document.getElementById('laughVideo');
+  vid.muted = false;
+  vid.volume = 1;
+  vid.play().catch(() => { vid.muted = true; vid.play(); });
+
+  if (musicOn) bgMusic.pause();
+
+  try {
+    const ctx = new AudioContext();
+    function playTone(freq, start, dur, type='sine', vol=0.3) {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = type;
+      o.frequency.setValueAtTime(freq, ctx.currentTime + start);
+      o.frequency.exponentialRampToValueAtTime(freq * 0.3, ctx.currentTime + start + dur);
+      g.gain.setValueAtTime(vol, ctx.currentTime + start);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+      o.start(ctx.currentTime + start);
+      o.stop(ctx.currentTime + start + dur + 0.05);
+    }
+    [0, 0.15, 0.3, 0.5, 0.65, 0.85, 1.1, 1.4].forEach((t, i) => {
+      playTone(800 - i * 60, t, 0.18, 'sawtooth', 0.15);
+    });
+    playTone(200, 0, 3, 'sine', 0.08);
+    playTone(60, 0.5, 4, 'sine', 0.12);
+  } catch(e) {}
+
+  setTimeout(() => {
+    showDocument();
+  }, 2800);
+}
+
+function showDocument() {
+  const reveal = document.getElementById('documentReveal');
+  const sigDisplay = document.getElementById('docSigDisplay');
+
+  if (capturedSigDataURL) {
+    const img = document.createElement('img');
+    img.src = capturedSigDataURL;
+    img.style.cssText = 'max-width:100%; max-height:80px; display:block; margin:0 auto;';
+    sigDisplay.appendChild(img);
+  }
+
+  reveal.style.display = 'flex';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      reveal.classList.add('open');
+    });
+  });
+
+  setTimeout(() => {
+    let opacity = 1;
+    const fadeIv = setInterval(() => {
+      opacity -= 0.025;
+      reveal.style.opacity = Math.max(0, opacity);
+      document.getElementById('horrorScreen').style.opacity = Math.max(0, opacity);
+      if (opacity <= 90) {
+        clearInterval(fadeIv);
+        window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+      }
+    }, 60);
+  }, 22000); 
+}
+</script>
+</body>
+</html>
